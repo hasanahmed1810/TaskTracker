@@ -31,39 +31,50 @@ export default {
     toggleAddTasks(){
       this.showAddTask = !this.showAddTask
     },
-    addTask(task){
-      this.tasks = [...this.tasks, task]
+    async addTask(task){
+      const data = await fetch('http://localhost:5000/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(task)
+      }).then(res => res.json)
+      
+      this.tasks = [...this.tasks, data]
     },
-    deleteTask(id){
+    async deleteTask(id){
       if(confirm('Are you sure you want to delete this task?')){
-        this.tasks = this.tasks.filter(task => task.id != id)
+        const res = await fetch(`http://localhost:5000/tasks/${id}`,{
+          method: 'DELETE'
+        })
+        if (res.status === 200){
+          this.tasks = this.tasks.filter(task => task.id != id)
+        }
       }
     },
-    toggleReminder(id){
-      this.tasks = this.tasks.map(task => task.id === id ? {...task, reminder: !task.reminder} : task)
-    }
-  },
-  created(){
-    this.tasks = [
-      {
-        id: 1,
-        text: 'Doctors Appointment',
-        day: 'March 1st at 2:30pm',
-        reminder: true,
-      },
-      {
-        id: 2,
-        text: 'Meeting at School',
-        day: 'March 3rd at 1:30pm',
-        reminder: true,
-      },
-      {
-        id: 3,
-        text: 'Food Shopping',
-        day: 'March 3rd at 11:00am',
-        reminder: true,
+    async toggleReminder(id){
+      const taskToToggle = await fetch(`http://localhost:5000/tasks/${id}`).then(res => res.json())
+      const updatedTask = {
+        ...taskToToggle,
+        reminder: !taskToToggle.reminder
       }
-    ]
+
+      await fetch(`http://localhost:5000/tasks/${id}`,{
+          method: 'PUT',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify(updatedTask)
+      }).then(res => res.json)
+
+      this.tasks = this.tasks.map(task => task.id === id ? {...task, reminder: !task.reminder} : task)
+    },
+  },
+  async created(){
+    this.tasks = await fetch('http://localhost:5000/tasks').then(res => res.json())
+  },
+  async updated() {
+    this.tasks = await fetch('http://localhost:5000/tasks').then(res => res.json())
   },
 }
 </script>
